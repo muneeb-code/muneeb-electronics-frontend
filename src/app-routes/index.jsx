@@ -1,8 +1,10 @@
+// src/app-routes/index.jsx
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import AppLayout from "../app-layout";
 
 import Home from "../pages/home";
+import ContactUs from "../pages/contact/index.jsx";
 
 import AuthAdminPanel from "../admin/auth-admin-Panel";
 import AuthAdminLogin from "../admin/auth-admin-login";
@@ -20,42 +22,43 @@ import OrderPage from "../pages/order";
 
 function AppRoutes() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/products" element={<ProductList />} />{" "}
-          <Route path="/order" element={<OrderPage />} />{" "}
-          {/* Product Listing */}
-          <Route path="/product/:id" element={<ProductDetail />} />{" "}
-          {/* Product Detail */}
-          <Route path="/sign-up" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-        </Route>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/contact" element={<ContactUs />} />
+        <Route path="/products" element={<ProductList />} />
+        <Route path="/order" element={<OrderPage />} />
+        
+        {/* Product Detail Routes (Dono support karne ke liye handle kar diye hain) */}
+        <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/products/:id" element={<ProductDetail />} />
 
-        <Route element={<AuthAdminLogin />}>
-          <Route path="/admin/login" element={<AdminLogin />} />
-        </Route>
+        <Route path="/sign-up" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+      </Route>
 
-        <Route element={<AuthAdminPanel />}>
-          <Route path="/admin" element={<AdminPanelLayout />}>
-            <Route path="/admin" element={<Dashboard />} />
-            <Route
-              path="/admin/products-management"
-              element={<ProductsManagement />}
-            />
-            <Route
-              path="/admin/orders-management"
-              element={<OrdersManagement />}
-            />
-            <Route
-              path="/admin/users-management"
-              element={<UsersManagement />}
-            />
-          </Route>
+      <Route element={<AuthAdminLogin />}>
+        <Route path="/admin/login" element={<AdminLogin />} />
+      </Route>
+
+      <Route element={<AuthAdminPanel />}>
+        <Route path="/admin" element={<AdminPanelLayout />}>
+          <Route path="" element={<Dashboard />} />
+          <Route
+            path="products-management"
+            element={<ProductsManagement />}
+          />
+          <Route
+            path="orders-management"
+            element={<OrdersManagement />}
+          />
+          <Route
+            path="users-management"
+            element={<UsersManagement />}
+          />
         </Route>
-      </Routes>
-    </BrowserRouter>
+      </Route>
+    </Routes>
   );
 }
 

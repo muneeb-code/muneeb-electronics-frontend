@@ -1,15 +1,16 @@
+// src/app-layout/index.jsx
 import React from "react";
-import Navbar from "../components/navbar";
 import { Outlet } from "react-router-dom";
-function AppLayout() {
+
+const AppLayout = () => {
   return (
-    <div className="flex flex-col h-screen w-full">
-      <Navbar />
-      <div className="flex-1">
+    <div className="flex flex-col min-h-screen">
+      {/* Navbar yahan se hata diya hai kyunki App.jsx mein global laga chuke hain */}
+      <main className="flex-grow">
         <Outlet />
-      </div>
+      </main>
     </div>
   );
-}
+};
 
 export default AppLayout;

@@ -4,8 +4,7 @@ import { Loader2 } from "lucide-react";
 import * as Yup from "yup";
 import { Formik } from "formik";
 import { toast } from "react-hot-toast";
-import axios from "axios";
-import * as bcrypt from "bcryptjs";
+import api from "../../services/api";
 
 const loginSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email is required"),
@@ -15,54 +14,64 @@ const loginSchema = Yup.object().shape({
 const Login = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = async (values, setSubmitting) => {
+  const handleLoginSubmit = async (values, { setSubmitting }) => {
     try {
-      const { data } = await axios.get("http://localhost:4000/users");
-      const isExist = data.find((user) => user.email === values.email);
-      if (isExist) {
-        const comparePassword = await bcrypt.compare(
-          values.password,
-          isExist.password
-        );
-        if (comparePassword) {
-          toast.success("User logged in successfully!");
+      // Laravel API Endpoint: POST /api/login
+      const response = await api.post("/login", {
+        email: values.email,
+        password: values.password,
+      });
 
-          // Log user data to verify full name is present
-          console.log("User Data:", isExist);
+      // Flexible response unwrapping for different Laravel auth patterns
+      const resData = response.data;
+      const token = resData.token || resData.access_token || resData.data?.token;
+      const user = resData.user || resData.data?.user || resData.data;
 
-          // Store full user data in local storage
-          const userData = {
-            name: isExist.name, // Store the user's full name
-            email: isExist.email, // Store the user's email
-          };
-          localStorage.setItem("login-system", JSON.stringify(userData));
+      if (user) {
+        toast.success(`Welcome back, ${user.name || user.fullName || "User"}! 🚀`);
 
-          navigate("/order");
+        if (token) {
+          localStorage.setItem("token", token);
+        }
+        localStorage.setItem("login-system", JSON.stringify(user));
+
+        // Role ke mutabiq smart redirection
+        if (user.role === "admin") {
+          navigate("/admin");
         } else {
-          toast.error("Incorrect password");
+          navigate("/products"); // Updated to products storefront
         }
       } else {
-        toast.error("User not found");
+        toast.error("Login successful, but user data not received.");
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Login error:", error);
+      const errorMessage =
+        error.response?.data?.message || error.message || "Invalid email or password! Please try again.";
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex bg-[aliceblue] h-full items-center justify-center">
-      <div className="border rounded-xl p-10 shadow-2xl bg-[#fff] sm:mx-auto sm:w-full sm:max-w-sm">
-        <h2 className="font-sans text-center text-3xl font-semibold mb-3 text-gray-900">
-          Login
-        </h2>
+    <div className="flex bg-[aliceblue] h-screen items-center justify-center font-sans">
+      <div className="border rounded-3xl p-10 shadow-2xl bg-[#fff] sm:mx-auto sm:w-full sm:max-w-md border-slate-200/80">
+        
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 border border-orange-200 shadow-2xs">
+            ⚡
+          </div>
+          <h2 className="text-center text-3xl font-black mb-1 text-slate-900 tracking-tight">
+            Muneeb Electronics
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">Sign in to your account</p>
+        </div>
+
         <Formik
           initialValues={{ email: "", password: "" }}
           validationSchema={loginSchema}
-          onSubmit={(values, { setSubmitting }) => {
-            handleSubmit(values, setSubmitting);
-          }}
+          onSubmit={handleLoginSubmit}
         >
           {({
             values,
@@ -73,28 +82,28 @@ const Login = () => {
             handleSubmit,
             isSubmitting,
           }) => (
-            <form onSubmit={handleSubmit} className="space-y-2">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium leading-6 text-gray-900"
+                  className="block text-xs font-bold uppercase text-slate-700 mb-1"
                 >
-                  Email address
+                  Email Address
                 </label>
                 <div className="mt-1">
                   <input
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="Enter Your Email"
+                    placeholder="e.g. admin@gmail.com"
                     disabled={isSubmitting}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     value={values.email}
-                    className="block w-full px-3 rounded py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="block w-full px-4 py-3 rounded-xl border border-slate-300 text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm bg-white"
                   />
                   {errors.email && touched.email && (
-                    <p className="text-red-500 text-xs">{errors.email}</p>
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>
                   )}
                 </div>
               </div>
@@ -102,7 +111,7 @@ const Login = () => {
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium leading-6 text-gray-900"
+                  className="block text-xs font-bold uppercase text-slate-700 mb-1"
                 >
                   Password
                 </label>
@@ -111,36 +120,38 @@ const Login = () => {
                     id="password"
                     name="password"
                     type="password"
-                    placeholder="Enter Your Password"
+                    placeholder="••••••••"
                     disabled={isSubmitting}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     value={values.password}
-                    className="block w-full px-3 rounded py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="block w-full px-4 py-3 rounded-xl border border-slate-300 text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm bg-white"
                   />
                   {errors.password && touched.password && (
-                    <p className="text-red-500 text-xs">{errors.password}</p>
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.password}</p>
                   )}
                 </div>
               </div>
+
               <div>
                 <button
                   type="submit"
-                  className="mt-6 flex w-full justify-center rounded bg-orange-500 hover:bg-orange-600 px-3 py-0.5 text-sm font-semibold leading-6 text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  disabled={isSubmitting}
+                  className="mt-4 flex w-full justify-center items-center rounded-xl bg-orange-600 hover:bg-orange-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-600/30 transition cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting && <Loader2 className="animate-spin mr-2" />}
-                  Login
+                  {isSubmitting && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+                  <span>Sign In</span>
                 </button>
               </div>
             </form>
           )}
         </Formik>
 
-        <p className="mt-4 text-center text-sm text-gray-500">
-          Create your account
+        <p className="mt-6 text-center text-xs text-slate-500 border-t border-slate-100 pt-4">
+          Don't have an account?
           <Link
             to="/sign-up"
-            className="ml-2 font-semibold leading-6 text-orange-500 hover:text-orange-600 hover:underline"
+            className="ml-1.5 font-bold text-orange-600 hover:text-orange-700 hover:underline"
           >
             Register
           </Link>

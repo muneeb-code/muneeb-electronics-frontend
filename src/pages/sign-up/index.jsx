@@ -1,63 +1,62 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import * as Yup from "yup";
 import { Formik } from "formik";
 import { toast } from "react-hot-toast";
-import axios from "axios";
-import * as bcrypt from "bcryptjs";
+import api from "../../services/api";
 
-const registerSchema = Yup.object().shape({
-  fullName: Yup.string()
-    .min(2, "Too Short!")
-    .max(50, "Too Long!")
-    .required("Full Name is required"),
+const signUpSchema = Yup.object().shape({
+  name: Yup.string().required("Full name is required"),
   email: Yup.string().email("Invalid email").required("Email is required"),
-  password: Yup.string()
-    .min(4, "Too Short!")
-    .max(50, "Too Long!")
-    .required("Password is required"),
-  confirmPassword: Yup.string()
-    .oneOf([Yup.ref("password"), null], "Passwords must match")
-    .required("Confirm Password is required"),
+  password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
 });
 
-const Register = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+const SignUp = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = async (values, setSubmitting) => {
+  const handleSignUpSubmit = async (values, { setSubmitting }) => {
     try {
-      const hashedPassword = await bcrypt.hash(values.password, 10);
-      values.password = hashedPassword;
-      await axios.post("http://localhost:4000/users", values);
-      localStorage.setItem("login-system", JSON.stringify(values)); // Save user data
-      toast.success("User registered successfully!");
-      navigate("/login");
+      // Laravel API Endpoint: POST /api/register (ya jo bhi aapka signup endpoint ho)
+      const response = await api.post("/register", {
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        role: "customer", // Default role customer hoga
+      });
+
+      if (response.data.success || response.status === 201 || response.status === 200) {
+        toast.success("Account created successfully! Please login.");
+        navigate("/login");
+      }
     } catch (error) {
-      console.log("error", error.message);
-      toast.error(error.message);
+      console.error("Sign up error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Registration failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex bg-[aliceblue] h-full items-center justify-center">
-      <div className="mt-10 border px-10 py-6 rounded-xl shadow-2xl bg-[#fff] sm:mx-auto sm:w-full sm:max-w-sm">
-        <h1 className="text-3xl text-center font-serif pb-2">Create account</h1>
+    <div className="flex bg-[aliceblue] h-screen items-center justify-center">
+      <div className="border rounded-2xl p-10 shadow-2xl bg-[#fff] sm:mx-auto sm:w-full sm:max-w-md border-slate-200">
+        
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 border border-orange-200 shadow-2xs">
+            ⚡
+          </div>
+          <h2 className="font-sans text-center text-3xl font-black mb-1 text-gray-900 tracking-tight">
+            Create Account
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">Join Muneeb Electronics today</p>
+        </div>
+
         <Formik
-          initialValues={{
-            fullName: "",
-            email: "",
-            password: "",
-            confirmPassword: "",
-          }}
-          validationSchema={registerSchema}
-          onSubmit={(values, { setSubmitting }) => {
-            handleSubmit(values, setSubmitting);
-          }}
+          initialValues={{ name: "", email: "", password: "" }}
+          validationSchema={signUpSchema}
+          onSubmit={handleSignUpSubmit}
         >
           {({
             values,
@@ -68,30 +67,28 @@ const Register = () => {
             handleSubmit,
             isSubmitting,
           }) => (
-            <form onSubmit={handleSubmit} className="space-y-2">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label
-                  htmlFor="fullName"
-                  className="block text-sm font-medium leading-6 text-gray-900"
+                  htmlFor="name"
+                  className="block text-xs font-bold uppercase text-slate-700 mb-1"
                 >
                   Full Name
                 </label>
                 <div className="mt-1">
                   <input
-                    id="fullName"
-                    name="fullName"
+                    id="name"
+                    name="name"
                     type="text"
-                    placeholder="Enter Your Full Name"
+                    placeholder="Enter your name"
                     disabled={isSubmitting}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    value={values.fullName}
-                    className="block w-full px-3 rounded py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    value={values.name}
+                    className="block w-full px-4 py-2.5 rounded-xl border border-slate-300 text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm"
                   />
-                  {errors.fullName && touched.fullName && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.fullName}
-                    </p>
+                  {errors.name && touched.name && (
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.name}</p>
                   )}
                 </div>
               </div>
@@ -99,24 +96,24 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium leading-6 text-gray-900"
+                  className="block text-xs font-bold uppercase text-slate-700 mb-1"
                 >
-                  Email address
+                  Email Address
                 </label>
                 <div className="mt-1">
                   <input
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="Enter Your Email"
+                    placeholder="e.g. user@gmail.com"
                     disabled={isSubmitting}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     value={values.email}
-                    className="block w-full px-3 rounded py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="block w-full px-4 py-2.5 rounded-xl border border-slate-300 text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm"
                   />
                   {errors.email && touched.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>
                   )}
                 </div>
               </div>
@@ -124,86 +121,47 @@ const Register = () => {
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium leading-6 text-gray-900"
+                  className="block text-xs font-bold uppercase text-slate-700 mb-1"
                 >
                   Password
                 </label>
-                <div className="mt-1 flex items-center relative">
+                <div className="mt-1">
                   <input
                     id="password"
                     name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter Your Password"
+                    type="password"
+                    placeholder="••••••••"
                     disabled={isSubmitting}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     value={values.password}
-                    className="block w-full px-3 rounded py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="block w-full px-4 py-2.5 rounded-xl border border-slate-300 text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm"
                   />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff /> : <Eye />}
-                  </button>
+                  {errors.password && touched.password && (
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.password}</p>
+                  )}
                 </div>
-                {errors.password && touched.password && (
-                  <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-                )}
               </div>
 
               <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium leading-6 text-gray-900 "
-                >
-                  Confirm Password
-                </label>
-                <div className="mt-1 flex items-center relative">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm Your Password"
-                    disabled={isSubmitting}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    value={values.confirmPassword}
-                    className="block w-full px-3 rounded py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? <EyeOff /> : <Eye />}
-                  </button>
-                </div>
-                {errors.confirmPassword && touched.confirmPassword && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
-              <div>
                 <button
                   type="submit"
-                  className="mt-6 flex w-full justify-center rounded bg-orange-500 hover:bg-orange-600 px-3 py-0.5 text-sm font-semibold leading-6 text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  disabled={isSubmitting}
+                  className="mt-4 flex w-full justify-center items-center rounded-xl bg-orange-600 hover:bg-orange-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-600/30 transition cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting && <Loader2 className="animate-spin mr-2" />}
-                  Register
+                  {isSubmitting && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+                  <span>Sign Up</span>
                 </button>
               </div>
             </form>
           )}
         </Formik>
 
-        <p className="mt-2 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-slate-500 border-t border-slate-100 pt-4">
           Already have an account?
           <Link
             to="/login"
-            className="ml-2 font-semibold leading-6 text-orange-500 hover:text-orange-600 hover:underline"
+            className="ml-1.5 font-bold text-orange-600 hover:text-orange-700 hover:underline"
           >
             Login
           </Link>
@@ -213,4 +171,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default SignUp;

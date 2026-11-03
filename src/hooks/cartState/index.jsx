@@ -1,34 +1,44 @@
-// hooks/cartState.js
-import create from "zustand";
+// src/hooks/cartState.js
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-const useCartState = create((set, get) => ({
-  cart: [],
+const useCartState = create(
+  persist(
+    (set, get) => ({
+      cart: [],
+      
+      addToCart: (product) => {
+        const currentCart = get().cart;
+        const productId = product.id || product._id;
+        const existingIndex = currentCart.findIndex((item) => (item.id || item._id) === productId);
+        
+        if (existingIndex > -1) {
+          const updatedCart = [...currentCart];
+          updatedCart[existingIndex].quantity = (updatedCart[existingIndex].quantity || 1) + 1;
+          set({ cart: updatedCart });
+        } else {
+          set({ cart: [...currentCart, { ...product, quantity: 1 }] });
+        }
+      },
 
-  addToCart: (product) => {
-    const existingItem = get().cart.find((item) => item.id === product.id);
-    if (!existingItem) {
-      set((state) => ({
-        cart: [...state.cart, { ...product, quantity: 1 }],
-      }));
+      removeFromCart: (id) => {
+        set({ cart: get().cart.filter((item) => (item.id || item._id) !== id) });
+      },
+
+      updateQuantity: (id, quantity) => {
+        set((state) => ({
+          cart: state.cart.map((item) =>
+            (item.id || item._id) === id ? { ...item, quantity: Math.max(1, quantity) } : item
+          ),
+        }));
+      },
+
+      clearCart: () => set({ cart: [] }),
+    }),
+    {
+      name: "muneeb-cart-storage",
     }
-  },
-
-  // Fixed: Directly checking if the product is in the cart from the state
-  isInCart: (id) => {
-    return get().cart.some((item) => item.id === id);
-  },
-
-  removeFromCart: (id) =>
-    set((state) => ({
-      cart: state.cart.filter((item) => item.id !== id),
-    })),
-
-  updateQuantity: (id, quantity) =>
-    set((state) => ({
-      cart: state.cart.map((item) =>
-        item.id === id ? { ...item, quantity: quantity } : item
-      ),
-    })),
-}));
+  )
+);
 
 export default useCartState;

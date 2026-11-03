@@ -1,147 +1,116 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
-import * as Yup from "yup";
-import { Formik } from "formik";
-import { toast } from "react-hot-toast";
-import axios from "axios";
-
-const loginSchema = Yup.object().shape({
-  email: Yup.string().email("Invalid email").required("Email is required"),
-  password: Yup.string().required("Password is required"),
-});
+// src/admin/admin-login/index.jsx
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
+import toast from "react-hot-toast";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const [credentials, setCredentials] = useState({
+    email: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (values, setSubmitting) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCredentials((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    
+    if (!credentials.email || !credentials.password) {
+      toast.error("Please fill in both email and password!");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const { data } = await axios.get("http://localhost:4000/admin"); // fetching from "user"
-      const isExist = data.find((user) => user.email === values.email);
+      const response = await api.post("/login", credentials);
+      const { token, user } = response.data;
 
-      if (isExist) {
-        if (values.password === isExist.password) {
-          toast.success("Admin login successful!");
-          localStorage.setItem("admin-login-system", values.email);
-          navigate("/admin");
-        } else {
-          toast.error("Incorrect password");
-        }
+      if (user && user.role === "admin") {
+        localStorage.setItem("admin-token", token);
+        localStorage.setItem("admin-login-system", JSON.stringify(user));
+        
+        toast.success("Admin Login Successful! 🚀");
+        navigate("/admin");
       } else {
-        toast.error("Admin not found");
+        toast.error("Access Denied: Aapke paas admin rights nahi hain.");
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Login error:", error);
+      const errorMessage = error.response?.data?.message || "Invalid email or password!";
+      toast.error(errorMessage);
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex bg-[aliceblue] h-screen flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <div>
-          <img
-            src="https://easyshoppingcenter.com/cdn/shop/files/For-white-bg_7f2d4837-28da-4349-a7e3-35cd6e0dd710.png?v=1637400970&width=600"
-            alt=""
-            className=" w-96"
-          />
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 font-sans">
+      <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl border border-slate-200/80 max-w-md w-full">
+        
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 border border-orange-200 shadow-2xs">
+            ⚡
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Admin Portal</h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">Muneeb Electronics Management System</p>
         </div>
-      </div>
-      <div className="mt-10 border rounded-xl p-10 shadow-2xl bg-[#fff] sm:mx-auto sm:w-full sm:max-w-sm">
-        <h2 className="font-sans text-center text-3xl font-semibold mb-4 text-gray-900">
-          Admin Login
-        </h2>
-        <Formik
-          initialValues={{ email: "", password: "" }}
-          validationSchema={loginSchema}
-          onSubmit={(values, { setSubmitting }) => {
-            handleSubmit(values, setSubmitting);
-          }}
-        >
-          {({
-            values,
-            errors,
-            touched,
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            isSubmitting,
-          }) => (
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium leading-6 text-gray-900"
-                >
-                  Email address
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter Your Email"
-                    disabled={isSubmitting}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    value={values.email}
-                    className="block w-full px-3 rounded py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  />
-                  {errors.email && touched.email && (
-                    <p className="text-red-500 text-xs">{errors.email}</p>
-                  )}
-                </div>
-              </div>
 
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium leading-6 text-gray-900"
-                >
-                  Password
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Enter Your Password"
-                    disabled={isSubmitting}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    value={values.password}
-                    className="block w-full px-3 rounded py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  />
-                  {errors.password && touched.password && (
-                    <p className="text-red-500 text-xs">{errors.password}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <button
-                  type="submit"
-                  className="mt-6 flex w-full justify-center rounded bg-orange-500 hover:bg-orange-600 px-3 py-0.5 text-sm font-semibold leading-6 text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                >
-                  {isSubmitting && <Loader2 className="animate-spin mr-2" />}{" "}
-                  Login
-                </button>
-              </div>
-            </form>
-          )}
-        </Formik>
-        <p className="mt-4 text-center text-sm text-gray-500">
-          Go to website
-          <Link
-            to="/"
-            className="ml-2 font-semibold leading-6 text-orange-500 hover:text-orange-600 hover:underline"
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Admin Email</label>
+            <input
+              type="email"
+              name="email"
+              value={credentials.email}
+              onChange={handleChange}
+              placeholder="admin@gmail.com"
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">Password</label>
+            <input
+              type="password"
+              name="password"
+              value={credentials.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full mt-2 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-orange-600/30 cursor-pointer text-sm disabled:opacity-50 flex items-center justify-center space-x-2"
           >
-            Easy-Shopping
-          </Link>
-        </p>
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Logging in...</span>
+              </>
+            ) : (
+              <span>Login to Dashboard 🔐</span>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center border-t border-slate-100 pt-4">
+          <p className="text-xs text-slate-400">Secure Laravel API Connected</p>
+        </div>
+
       </div>
     </div>
   );
 };
 
-export default AdminLogin;
+export default AdminLogin; // <--- Yeh export hona lazmi hai!
